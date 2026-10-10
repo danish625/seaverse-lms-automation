@@ -1,0 +1,20 @@
+{
+  "name": "seaverse-lms-automation",
+  "version": "1.0.0",
+  "description": "Enterprise Playwright Automation Framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:qa": "cross-env ENV=qa playwright test",
+    "test:uat": "cross-env ENV=uat playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "cross-env": "^10.1.0",
+    "dotenv": "^16.0.3",
+    "typescript": "^5.0.0"
+  }
+}
