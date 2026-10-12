@@ -121,7 +121,7 @@ test.describe('Seaverse Login Scenarios', () => {
     await loginPage.clickContinue();
     await loginPage.clickForgotPassword();
 
-    await loginPage.enterForgotPasswordEmail('danish+100@squadramedia.com');
+    await loginPage.enterForgotPasswordEmail(process.env.UNREGISTERED_EMAIL || 'unregistered@example.com');
     await loginPage.checkForgotPasswordConsent();
     await loginPage.clickRequestResetLink();
     
@@ -210,7 +210,6 @@ test.describe('Seaverse Login Scenarios', () => {
 
     // Scroll to the bottom of the terms to enable the buttons
     await loginPage.scrollTermsToBottom();
-    await loginPage.page.pause(); // Playwright Inspector pause
     await expect(loginPage.acceptTermsButton).toBeEnabled();
 
     // 4. Click Accept
@@ -233,7 +232,6 @@ test.describe('Seaverse Login Scenarios', () => {
     
     // Scroll to the bottom to enable the buttons
     await loginPage.scrollTermsToBottom();
-    await loginPage.page.pause(); // Added for debugging as requested
     await expect(loginPage.rejectTermsButton).toBeEnabled();
 
     // Click Reject
@@ -335,7 +333,7 @@ test.describe('Seaverse Login Scenarios', () => {
     await expect(loginPage.fieldValidationError).not.toBeVisible();
   });
 
-  test.only('TC_LN_027: Verify Login with valid email but wrong password @regression', async ({ loginPage }) => {
+  test('TC_LN_027: Verify Login with valid email but wrong password @regression', async ({ loginPage }) => {
     // 1. Enter a valid, registered email
     await loginPage.enterEmail(process.env.TEST_EMAIL!);
     await loginPage.clickContinue();
@@ -346,6 +344,108 @@ test.describe('Seaverse Login Scenarios', () => {
     
     // 3. Validate the exact backend error toast appears
     await expect(loginPage.getNotificationMessage('incorrect Email or password')).toBeVisible();
+  });
+
+  test('TC_LN_028: Verify Email validation - Account Not Found @regression', async ({ loginPage }) => {
+    await loginPage.enterEmail(process.env.UNREGISTERED_EMAIL || 'random_unregistered@example.com');
+    await loginPage.clickContinue();
+    
+    // Validate using the resilient getByRole Heading
+    await expect(loginPage.getAlertBannerHeading('Account Not Found')).toBeVisible();
+    
+    // Validate field error
+    await expect(loginPage.fieldValidationError).toHaveText('No account found with this email address');
+  });
+
+  test('TC_LN_029: Verify Email validation - Account Deleted', async ({ loginPage }) => {
+    await loginPage.enterEmail(process.env.DELETED_USER_EMAIL!); 
+    await loginPage.clickContinue();
+    
+    await expect(loginPage.getAlertBannerHeading('Account Deleted')).toBeVisible();
+    await expect(loginPage.getAlertBannerMessage('This account has been deleted. Please contact your admin.')).toBeVisible();
+  });
+
+  test('TC_LN_030: Verify Email validation - Signup Pending Approval @regression', async ({ loginPage }) => {
+    await loginPage.enterEmail(process.env.PENDING_USER_EMAIL!); 
+    await loginPage.clickContinue();
+    
+    await expect(loginPage.getAlertBannerHeading('Signup Request Pending Approval')).toBeVisible();
+    await expect(loginPage.getAlertBannerMessage('Your signup request is pending admin approval.')).toBeVisible();
+  });
+
+  test('TC_LN_031: Verify visible Seaverse logo is displayed on Login page @regression', async ({ loginPage }) => {
+    await expect(loginPage.seaverseLogo).toBeVisible();
+  });
+
+  test('TC_LN_032: Verify Continue button state based on email input @regression', async ({ loginPage }) => {
+    // 1. Initial State: No email entered -> Button must be Disabled
+    await expect(loginPage.emailInput).toHaveValue('');
+    await expect(loginPage.continueButton).toBeDisabled();
+    // 2. Transition State: Enter email -> Button must become Enabled
+    await loginPage.enterEmail(process.env.TEST_EMAIL!);
+    await expect(loginPage.continueButton).toBeEnabled();
+    // 3. Clear State: Clear email -> Button must return to Disabled
+    await loginPage.clearEmail();
+    await expect(loginPage.continueButton).toBeDisabled();
+  });
+
+  test('TC_LN_033: Verify Login button state based on password input @regression', async ({ loginPage }) => {
+    // 1. Step 1: Proceed to password step
+    await loginPage.enterEmail(process.env.TEST_EMAIL!);
+    await loginPage.clickContinue();
+    // 2. Initial Step 2 State: Password is empty -> Login button must be Disabled
+    await expect(loginPage.passwordInput).toHaveValue('');
+    await expect(loginPage.finalLoginButton).toBeDisabled();
+    // 3. Transition State: Enter password -> Login button must become Enabled
+    await loginPage.enterPassword(process.env.TEST_PASSWORD!);
+    await expect(loginPage.finalLoginButton).toBeEnabled();
+    // 4. Clear State: Clear password -> Login button must return to Disabled
+    await loginPage.clearPassword();
+    await expect(loginPage.finalLoginButton).toBeDisabled();
+  });
+
+  test('TC_LN_034: Verify Email field prevents space character input @regression', async ({ loginPage }) => {
+    // 1. Simulate human typing an email containing space keystrokes
+    await loginPage.emailInput.pressSequentially('u s e r @ t e s t . c o m');
+
+    // 2. Validate that the UI physically blocked the space characters
+    await expect(loginPage.emailInput).toHaveValue('user@test.com');
+  });
+
+  test('TC_LN_035: Verify Email field restricts leading spaces @regression', async ({ loginPage }) => {
+    // 1. Press Space as the very first keystroke
+    await loginPage.emailInput.press('Space');
+    await loginPage.emailInput.press('Space');
+
+    // Must remain completely empty and Continue button must stay Disabled
+    await expect(loginPage.emailInput).toHaveValue('');
+    await expect(loginPage.continueButton).toBeDisabled();
+
+    // 2. Type leading spaces followed by an email
+    await loginPage.emailInput.pressSequentially('   user@test.com');
+
+    // Field must restrict the leading spaces and only record the email
+    await expect(loginPage.emailInput).toHaveValue('user@test.com');
+  });
+
+  test('TC_LN_036: Verify Password field restricts leading spaces @regression', async ({ loginPage }) => {
+    // Proceed to Step 2
+    await loginPage.enterEmail(process.env.TEST_EMAIL!);
+    await loginPage.clickContinue();
+
+    // 1. Press Space as the very first keystroke in password field
+    await loginPage.passwordInput.press('Space');
+    await loginPage.passwordInput.press('Space');
+
+    // Must remain completely empty and Login button must stay Disabled
+    await expect(loginPage.passwordInput).toHaveValue('');
+    await expect(loginPage.finalLoginButton).toBeDisabled();
+
+    // 2. Type leading spaces followed by a password
+    await loginPage.passwordInput.pressSequentially('   ValidPass123!');
+
+    // Field must restrict the leading spaces and only record the password
+    await expect(loginPage.passwordInput).toHaveValue('ValidPass123!');
   });
 
 });

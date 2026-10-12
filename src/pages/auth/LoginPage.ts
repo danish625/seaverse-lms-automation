@@ -4,6 +4,7 @@ export class LoginPage {
   readonly page: Page;
   
   // First Step Locators
+  readonly seaverseLogo: Locator;
   readonly pageTitle: Locator;
   readonly emailInput: Locator;
   readonly continueButton: Locator;
@@ -38,6 +39,7 @@ export class LoginPage {
     this.page = page;
     
     // Step 1 Locators
+    this.seaverseLogo = page.getByAltText('Seaverse Logo').filter({ visible: true });
     this.pageTitle = page.getByRole('heading', { name: 'Login' });
     this.emailInput = page.getByPlaceholder('Enter email address');
     this.continueButton = page.getByRole('button', { name: 'Continue' });
@@ -171,5 +173,14 @@ export class LoginPage {
 
   getNotificationMessage(expectedText: string): Locator {
     return this.page.locator('p', { hasText: expectedText });
+  }
+
+  // --- Dynamic Banner Locators ---
+  getAlertBannerHeading(title: string): Locator {
+    return this.page.getByRole('heading', { name: title });
+  }
+
+  getAlertBannerMessage(message: string): Locator {
+    return this.page.getByText(message);
   }
 }
