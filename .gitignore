@@ -3,5 +3,5 @@ playwright-report/
 test-results/
 dist/
 .env
-playwright/.auth/*
-!playwright/.auth/.gitkeep
+src/auth/storage/*
+!src/auth/storage/.gitkeep
