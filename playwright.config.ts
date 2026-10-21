@@ -31,7 +31,7 @@ export default defineConfig({
     {
       name: 'unauthenticated',
       testMatch: /tests\/regression\/(login|supportRequest)\.spec\.ts/,
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
       },
     },
@@ -41,9 +41,9 @@ export default defineConfig({
       name: 'admin',
       testMatch: /tests\/regression\/signUpRequests\.spec\.ts/,
       dependencies: ['setup'],
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
-        storageState: 'src/auth/storage/admin.json',
+        // storageState: 'src/auth/storage/admin.json',
       },
     },
   ],
