@@ -5,6 +5,7 @@ import { DashboardPage } from '../pages/learner/DashboardPage';
 import { SupportModal } from '../components/SupportModal';
 import { UserManagementPage } from '../pages/admin/UserManagementPage';
 import { SignUpRequestsPage } from '../pages/admin/SignUpRequestsPage';
+import { DeleteRequestsPage } from '../pages/admin/DeleteRequestsPage';
 
 type MyFixtures = {
   loginPage: LoginPage;
@@ -13,6 +14,7 @@ type MyFixtures = {
   supportModal: SupportModal;
   userManagementPage: UserManagementPage;
   signUpRequestsPage: SignUpRequestsPage;
+  deleteRequestsPage: DeleteRequestsPage;
 };
 
 export const test = base.extend<MyFixtures>({
@@ -33,6 +35,9 @@ export const test = base.extend<MyFixtures>({
   },
   signUpRequestsPage: async ({ page }, use) => {
     await use(new SignUpRequestsPage(page));
+  },
+  deleteRequestsPage: async ({ page }, use) => {
+    await use(new DeleteRequestsPage(page));
   },
 });
 
