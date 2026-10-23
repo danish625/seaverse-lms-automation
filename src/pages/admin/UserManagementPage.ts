@@ -1,8 +1,7 @@
 import { Page, Locator } from '@playwright/test';
+import { BasePage } from '../base/BasePage';
 
-export class UserManagementPage {
-  readonly page: Page;
-
+export class UserManagementPage extends BasePage {
   // Header & Sidebar Locators
   readonly pageHeading: Locator;
   readonly usersSidebarLink: Locator;
@@ -14,6 +13,7 @@ export class UserManagementPage {
   readonly singleUserOption: Locator;
   readonly uploadCsvOption: Locator;
   readonly deleteRequestsOption: Locator;
+  readonly deleteRequestsBadge: Locator;
 
   // Reusable User Profile Form Locators (Used across Single User & Sign-Up Approvals)
   readonly employeeIdInput: Locator;
@@ -29,7 +29,10 @@ export class UserManagementPage {
   readonly dropdownEmptyMessage: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
+
+    // Main table search for User Management
+    this.searchInput = page.getByPlaceholder('Search Name, Email Id or User Id');
 
     // Header & Navigation
     this.pageHeading = page.getByRole('heading', { name: 'Users' });
@@ -38,12 +41,15 @@ export class UserManagementPage {
     // Dropdown Trigger Button
     this.manageUsersDropdownButton = page.getByRole('button', { name: 'Manage Users' });
 
-    // Dropdown Menu Options
+    // Dropdown Menu Options (Pure role + semantic text for badges, zero CSS classes!)
     this.signUpRequestsOption = page.getByRole('menuitem', { name: /Sign-Up Requests/i });
-    this.signUpRequestsBadge = this.signUpRequestsOption.locator('div.rounded-full');
+    this.signUpRequestsBadge = this.signUpRequestsOption.getByText(/\d+/);
+
+    this.deleteRequestsOption = page.getByRole('menuitem', { name: /Delete Requests/i });
+    this.deleteRequestsBadge = this.deleteRequestsOption.getByText(/\d+/);
+
     this.singleUserOption = page.getByRole('menuitem', { name: 'Single User' });
     this.uploadCsvOption = page.getByRole('menuitem', { name: 'Upload a CSV' });
-    this.deleteRequestsOption = page.getByRole('menuitem', { name: /Delete Requests/i });
 
     // Profile Form Locators
     this.employeeIdInput = page.getByPlaceholder('Enter the Employee ID');
@@ -59,11 +65,30 @@ export class UserManagementPage {
     this.dropdownEmptyMessage = page.getByText(/No .* found/i);
   }
 
-  // --- Page Actions ---
-  async getDropdownPendingCount(): Promise<number> {
+  // --- Badge Count Extractors ---
+  async getDropdownPendingCount(timeoutMs = 3000): Promise<number> {
+    return await this.getSignUpRequestsPendingCount(timeoutMs);
+  }
+
+  async getSignUpRequestsPendingCount(timeoutMs = 3000): Promise<number> {
+    const isVisible = await this.signUpRequestsBadge.isVisible({ timeout: timeoutMs }).catch(() => false);
+    if (!isVisible) {
+      return 0; // Badge not rendered = 0 requests (resolves in <=3s!)
+    }
     const countText = await this.signUpRequestsBadge.innerText();
     return parseInt(countText.trim(), 10);
   }
+
+  async getDeleteRequestsPendingCount(timeoutMs = 3000): Promise<number> {
+    const isVisible = await this.deleteRequestsBadge.isVisible({ timeout: timeoutMs }).catch(() => false);
+    if (!isVisible) {
+      return 0; // Badge not rendered = 0 requests (resolves in <=3s!)
+    }
+    const countText = await this.deleteRequestsBadge.innerText();
+    return parseInt(countText.trim(), 10);
+  }
+
+  // --- Page Actions ---
   async navigateToUsers() {
     await this.usersSidebarLink.click();
     await this.pageHeading.waitFor({ state: 'visible' });
@@ -78,6 +103,12 @@ export class UserManagementPage {
     await this.openManageUsersMenu();
     await this.signUpRequestsOption.click();
     await this.page.waitForURL(/.*signup-request/i);
+  }
+
+  async navigateToDeleteRequests() {
+    await this.openManageUsersMenu();
+    await this.deleteRequestsOption.click();
+    await this.page.waitForURL(/.*delete-request/i);
   }
 
   // --- Reusable User Profile Form Actions ---
@@ -127,11 +158,6 @@ export class UserManagementPage {
   }
 
   // --- High-Performance Dynamic Dropdown Methods ---
-
-  /**
-   * Reads only 1 integer and 1 string in ~4ms.
-   * Caps random index at Math.min(count, 20) for instant DOM availability without requiring scrolling.
-   */
   async getRandomDropdownOptionText(): Promise<string> {
     await this.dropdownOptions.first().waitFor({ state: 'visible' });
     const totalOptions = await this.dropdownOptions.count();
@@ -144,11 +170,6 @@ export class UserManagementPage {
     return randomText.trim();
   }
 
-  /**
-   * Universal search and select method for any dropdown (Modal or Filter panel):
-   * - If optionName is provided: searches and selects it.
-   * - If optionName is omitted: dynamically picks a random option, searches it, and selects it.
-   */
   async searchAndSelectOption(dropdownTrigger: Locator, optionName?: string): Promise<string> {
     await dropdownTrigger.click();
     const targetOptionName = optionName || (await this.getRandomDropdownOptionText());

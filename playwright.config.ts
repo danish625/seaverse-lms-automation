@@ -39,11 +39,11 @@ export default defineConfig({
     // 3. Admin Project: Runs Admin features pre-authenticated using admin.json
     {
       name: 'admin',
-      testMatch: /tests\/regression\/signUpRequests\.spec\.ts/,
+      testMatch: /tests\/regression\/(signUpRequests|deleteRequests)\.spec\.ts/,
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
-        // storageState: 'src/auth/storage/admin.json',
+        storageState: 'src/auth/storage/admin.json',
       },
     },
   ],
